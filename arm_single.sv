@@ -420,7 +420,7 @@ endmodule
 
 
 module alu(input  logic [31:0] a, b,
-           input  logic [1:0]  ALUControl,
+           input  logic [2:0]  ALUControl,  // att p/ 3bits
            output logic [31:0] Result,
            output logic [3:0]  ALUFlags);
 
@@ -432,10 +432,24 @@ module alu(input  logic [31:0] a, b,
   assign sum = a + condinvb + ALUControl[0];
 
   always_comb
-    casex (ALUControl[1:0])
-      2'b0?: Result = sum;
-      2'b10: Result = a & b;
-      2'b11: Result = a | b;
+    casex (ALUControl) // att p/ 3 bits
+      3'b000: Result = sum;   // ADD
+      3'b010: Result = a & b; // AND
+      3'b011: Result = a | b; // OR
+      3'b100: Result = a ^ b;// EOR
+      3'b101: Result = b; // MOV
+      // CMP => SUB internamente (mas fora, RegWrite=0)
+      3'b110: 
+       begin
+          // igual ao SUB
+          sum  = a + (~b) + 1'b1;
+          Result = sum[31:0];
+        end
+      3'b111:  // TST => AND internamente (mas fora, RegWrite=0)
+        begin
+        // igual ao AND
+        Result = a & b;
+      end
     endcase
 
   assign neg      = Result[31];
