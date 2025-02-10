@@ -157,7 +157,8 @@ module arm(input  logic        clk, reset,
   logic [3:0] ALUFlags;
   logic       RegWrite, 
               ALUSrc, MemtoReg, PCSrc;
-  logic [1:0] RegSrc, ImmSrc, ALUControl;
+  logic [1:0] RegSrc, ImmSrc;
+  logic [2:0] ALUControl; //expandido
 
   controller c(clk, reset, Instr[31:12], ALUFlags, 
                RegSrc, RegWrite, ImmSrc, 
@@ -178,7 +179,7 @@ module controller(input  logic         clk, reset,
                   output logic         RegWrite,
                   output logic [1:0]   ImmSrc,
                   output logic         ALUSrc, 
-                  output logic [1:0]   ALUControl,
+                  output logic [2:0]   ALUControl, // expandido
                   output logic         MemWrite, MemtoReg,
                   output logic         PCSrc);
 
@@ -199,7 +200,8 @@ module decoder(input  logic [1:0] Op,
                output logic [1:0] FlagW,
                output logic       PCS, RegW, MemW,
                output logic       MemtoReg, ALUSrc,
-               output logic [1:0] ImmSrc, RegSrc, ALUControl);
+               output logic [1:0] ImmSrc, RegSrc, 
+               output logic [2:0] ALUControl); // expandido
 
   logic [9:0] controls;
   logic       Branch, ALUOp;
@@ -235,9 +237,15 @@ module decoder(input  logic [1:0] Op,
         4'b1100: ALUControl = 3'b011; // ORR
         4'b0001: ALUControl = 3'b100; // EOR
         4'b1101: ALUControl = 3'b101; // MOV
-        4'b1010: ALUControl = 3'b110; // CMP (internamente SUB, mas RegWrite=0)
-        4'b1000: ALUControl = 3'b111; // TST (internamente AND, mas RegWrite=0)
-  	    default: ALUControl = 2'bx;  // unimplemented
+        4'b1010: begin // CMP
+            RegWrite = 1'b0;
+            ALUControl = 3'b110; // CMP (internamente SUB, mas RegWrite=0)
+          end
+        4'b1000: begin // TST
+            RegWrite = 1'b0; 
+            ALUControl = 3'b111; // TST (internamente AND, mas RegWrite=0)
+          end;
+  	    default: ALUControl = 3'bx;  // unimplemented
       endcase
       // update flags if S bit is set 
 	// (C & V only updated for arith instructions)
@@ -315,7 +323,7 @@ module datapath(input  logic        clk, reset,
                 input  logic        RegWrite,
                 input  logic [1:0]  ImmSrc,
                 input  logic        ALUSrc,
-                input  logic [1:0]  ALUControl,
+                input  logic [2:0]  ALUControl, //expandido 
                 input  logic        MemtoReg,
                 input  logic        PCSrc,
                 output logic [3:0]  ALUFlags,
@@ -422,7 +430,7 @@ endmodule
 
 
 module alu(input  logic [31:0] a, b,
-           input  logic [2:0]  ALUControl,  // att p/ 3bits
+           input  logic [2:0]  ALUControl,  // expandido p/ 3bits
            output logic [31:0] Result,
            output logic [3:0]  ALUFlags);
 
